@@ -1,6 +1,7 @@
 import win32gui
 import win32ui
 import win32con
+import win32api
 import numpy as np
 import cv2 as cv
 import pyautogui as pag
@@ -9,7 +10,17 @@ import time
 pag.FAILSAFE = True
 
 
-def capture_screen(x, y, width, height):
+import win32gui
+import win32ui
+import win32con
+import numpy as np
+import cv2 as cv
+
+def capture_screen():
+    # 获取屏幕尺寸
+    screen_width = win32api.GetSystemMetrics(win32con.SM_CXSCREEN)
+    screen_height = win32api.GetSystemMetrics(win32con.SM_CYSCREEN)
+
     # 创建设备上下文对象（Device Context，DC）
     hdesktop = win32gui.GetDesktopWindow()
     desktop_dc = win32gui.GetWindowDC(hdesktop)
@@ -20,11 +31,11 @@ def capture_screen(x, y, width, height):
 
     # 创建一个位图对象，并将其与内存设备上下文对象关联
     screenshot = win32ui.CreateBitmap()
-    screenshot.CreateCompatibleBitmap(img_dc, width, height)
+    screenshot.CreateCompatibleBitmap(img_dc, screen_width, screen_height)
     mem_dc.SelectObject(screenshot)
 
-    # 将指定区域的屏幕内容复制到内存设备上下文对象中
-    mem_dc.BitBlt((0, 0), (width, height), img_dc, (x, y), win32con.SRCCOPY)
+    # 将整个屏幕内容复制到内存设备上下文对象中
+    mem_dc.BitBlt((0, 0), (screen_width, screen_height), img_dc, (0, 0), win32con.SRCCOPY)
 
     # 获取位图的像素数据
     bmp_info = screenshot.GetInfo()
@@ -43,6 +54,18 @@ def capture_screen(x, y, width, height):
     return img_bgr
 
 
+def crop_image(image, region):
+    x, y, width, height = region
+
+    # 确定裁剪区域的边界
+    x_end = x + width
+    y_end = y + height
+
+    # 裁剪图像
+    cropped_image = image[y:y_end, x:x_end]
+
+    return cropped_image
+
 def matrix_sum(image):
     gray_image = cv.cvtColor(image, cv.COLOR_BGR2GRAY)
     matrix = np.array(gray_image, dtype=np.uint8)
@@ -57,8 +80,8 @@ def press_button():
 
 
 # 指定截图区域的坐标和大小
-x1, y1, w1, h1 = 837, 730, 18, 18
-x2, y2, w2, h2 = 913, 730, 18, 18
+region_1 = [837, 730, 18, 18]
+region_2 = [913, 730, 18, 18]
 
 base = 34387
 
@@ -71,9 +94,10 @@ for i in range(3):
 fish = 0
 
 while True:
-    img1 = capture_screen(x1, y1, w1, h1)
+    img = capture_screen()
+    img1 = crop_image(img, region_1)
     e1_sum = matrix_sum(img1)
-    img2 = capture_screen(x2, y2, w2, h2)
+    img2 = crop_image(img, region_2)
     e2_sum = matrix_sum(img2)
 
     if e1_sum == base:
